@@ -11,7 +11,7 @@ import { getSyllables } from './helpers/syllables';
 export class PunGenerator {
     constructor(private _config?: PungentConfig) {
         this._config = Object.assign({
-            syllableReplacementTolerance: .5,
+            replacementTolerance: .5,
             punFrequency: 1,
             punDistanceThreshold: 10
         }, this._config);
