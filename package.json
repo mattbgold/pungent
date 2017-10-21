@@ -1,0 +1,34 @@
+{
+  "name": "pungent",
+  "version": "1.0.0",
+  "description": "A cheesy pun generator",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prepublish": "npm run build",
+    "build": "rimraf ./dist && tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mattbgold/pungent.git"
+  },
+  "keywords": [
+    "puns",
+    "humor",
+    "phonetics",
+    "nlp"
+  ],
+  "author": "Matt Gold",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mattbgold/pungent/issues"
+  },
+  "homepage": "https://github.com/mattbgold/pungent#readme",
+  "devDependencies": {
+    "@types/node": "^8.0.46",
+    "typescript": "^2.5.3"
+  },
+  "dependencies": {
+    "nlp-syllables": "0.0.5"
+  }
+}
