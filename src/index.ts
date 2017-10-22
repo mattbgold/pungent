@@ -8,4 +8,4 @@ export function generatePuns(targetPhrase: string, punWord: string, options?: Pu
     return generator.generatePuns(targetPhrase, punWord);
 }
 
-export type PunGenerator = PunGenerator;
+export { PunGenerator } from './generator';
