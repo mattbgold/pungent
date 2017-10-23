@@ -13,12 +13,13 @@ export class PunGenerator {
         this._config = Object.assign({
             replacementTolerance: .5,
             punFrequency: 1,
-            punDistanceThreshold: 10
+            punScoreTolerance: 1
         }, this._config);
     }
 
     generatePuns(targetPhrase: string, punWord: string): PunWord[] {
         let punSyllables: Syllable[] = this._flatten(getSyllables(punWord)).map(this._toSyllable);
+        punSyllables.forEach(s => s.distanceScore = s.text.length);
         
         let phraseSyllables = getSyllables(targetPhrase);
         let phraseSyllablesByWord: Syllable[][] = phraseSyllables.map(_ => _.map(this._toSyllable));
@@ -39,28 +40,45 @@ export class PunGenerator {
             .reduce((a, b) => a.concat(b), [])
             .sort((a,b) => a.distance - b.distance);
     
-        let punPhrase: PunWord[] = [];
-    
-        phraseSyllablesByWord.forEach(word => {
-            //for each word in the phrase, turn it into a pun
+        const punPhrase: PunWord[] = [];
+        let remainingWordsToPun = phraseSyllablesByWord.length * this._config.punFrequency;
+        const randomIndexes = this._shuffle(phraseSyllablesByWord.map((_, i) => i));
+
+        for(let i = 0; i < phraseSyllablesByWord.length; i++) {
+            const word = phraseSyllablesByWord[randomIndexes[i]];
+
             let distanceMapForWord: DistanceMapping[] = globalDistanceMap.filter(x => word.map(s => s.text).includes(x.wordSyllable.text));
             
-            let punnedWord: Syllable[];
+            let processedWord: Syllable[];
             let isPun = false;
-            if (word.length == 1 || Math.random() > this._config.punFrequency)
-                punnedWord = word; //skip word with only one syllable
+            let punScore = 0;
+            if (remainingWordsToPun === 0)
+                processedWord = word;
             else {
                 isPun = true;
-                punnedWord = this._createPun(word, punSyllables, distanceMapForWord, 1);
+                let pun = this._createPun(this._cloneWord(word), punSyllables, distanceMapForWord, 1);
+                punScore = pun.reduce((sum, curr) => sum + curr.distanceScore, 0);
+
+                //lower scores are better
+                const worstScorePossible = Math.max(word.map(w => w.text).join('').length, punWord.length);
+
+                if (punScore > Math.round(this._config.punScoreTolerance * worstScorePossible) 
+                    || (word.length === 1 && punScore > 0)) {
+                    // don't use the pun if it's too much of a stretch, and only use single-syllable puns if they have a perfect score.
+                    processedWord = word;
+                } else {
+                    processedWord = pun;
+                    remainingWordsToPun--;
+                }
             }
-               
-            punPhrase.push({
+
+            punPhrase[randomIndexes[i]] = {
+                syllables: processedWord,
                 isPun,
-                syllables: punnedWord,
-                punScore: punnedWord.reduce((sum, curr) => sum + curr.distanceScore, 0)
-            });
-        });
-    
+                punScore
+            };
+        }
+
         return punPhrase;
     }
 
@@ -74,14 +92,14 @@ export class PunGenerator {
             wordSyllables.map(s => s.text).includes(m.wordSyllable.text) 
             && punSyllables.map(s => s.text).includes(m.punSyllable.text));
     
-            
-    
+            //pick one of the syllable mappings that have the shortest distance
         let mappingToUse = this._getRandomElement(distanceMap.filter(mapping => mapping.distance === distanceMap[0].distance));
     
         let syllableToReplace: Syllable;
         let wordIndex: number;
-    
-        if (mappingToUse.distance <= Math.max(mappingToUse.punSyllable.text.length, mappingToUse.wordSyllable.text.length) * substitutionTolerance) {
+        
+        const highestDistancePossible = Math.max(mappingToUse.punSyllable.text.length, mappingToUse.wordSyllable.text.length);
+        if (mappingToUse.distance <= substitutionTolerance * highestDistancePossible) {
             //if the pun syllable is close enough to a syllable in the word, replace it
             syllableToReplace = wordSyllables.find(s => s.text === mappingToUse.wordSyllable.text);
     
@@ -106,9 +124,7 @@ export class PunGenerator {
                 wordSyllables.push(newSyllable);
                 wordIndex = wordSyllables.length
             }
-                
         }
-    
     
         let remainingPunLeft = punSyllables.filter(s => s.index < mappingToUse.punSyllable.index);
         let remainingWordLeft = wordSyllables.filter(s => s.index < wordIndex);
@@ -116,7 +132,7 @@ export class PunGenerator {
         let remainingPunRight = punSyllables.filter(s => s.index > mappingToUse.punSyllable.index);
         let remainingWordRight = wordSyllables.filter(s => s.index > wordIndex);
     
-        return this._createPun(remainingWordLeft, remainingPunLeft, distanceMap, this._config.replacementTolerance)
+        return this._createPun(remainingWordLeft, remainingPunLeft, distanceMap, this._config.replacementTolerance, false)
             .concat(syllableToReplace ? [syllableToReplace] : [])
             .concat(this._createPun(remainingWordRight, remainingPunRight, distanceMap, this._config.replacementTolerance, true));
     }
@@ -124,14 +140,36 @@ export class PunGenerator {
     private _flatten(arr: string[][]): string[] {
         return (arr).reduce((a,b) => a.concat(b), []);
     }
+
     private _getRandomElement<T>(arr: T[]): T {
         return arr[Math.floor(Math.random() * arr.length)];
     }
-    
+
+    private _shuffle(array: any[]) {
+        for (var i = array.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
+        return array;
+    }
+
     private _toSyllable(text: string, index: number): Syllable {
         return {
             text,
-            index
+            index,
+            distanceScore: 0
         }
+    }
+
+    private _cloneWord(word: Syllable[]): Syllable[] {
+        return word.map(s => {
+            return {
+                text: s.text,
+                distanceScore: s.distanceScore,
+                index: s.index
+            };
+        });
     }
 }
