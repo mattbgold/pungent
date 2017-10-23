@@ -18,6 +18,15 @@ export class PunGenerator {
     }
 
     generatePuns(targetPhrase: string, punWord: string): PunWord[] {
+        let punctuation = targetPhrase
+            .split(' ')
+            .map(word => word.slice(-1))
+            .map(lastCharacter => /[^\w]/.test(lastCharacter) ? lastCharacter : '');
+
+        let capitalization = targetPhrase
+            .split(' ')
+            .map(word => /[A-Z]/.test(word.charAt(0)));
+
         let punSyllables: Syllable[] = this._flatten(getSyllables(punWord)).map(this._toSyllable);
         punSyllables.forEach(s => s.distanceScore = s.text.length);
         
@@ -52,7 +61,7 @@ export class PunGenerator {
             let processedWord: Syllable[];
             let isPun = false;
             let punScore = 0;
-            if (remainingWordsToPun === 0)
+            if (remainingWordsToPun === 0 || /^[^\w]*$/.test(word.map(x => x.text).join('')))
                 processedWord = word;
             else {
                 isPun = true;
@@ -72,12 +81,19 @@ export class PunGenerator {
                 }
             }
 
+            if (capitalization[randomIndexes[i]]) {
+                processedWord[0].text = processedWord[0].text.charAt(0).toUpperCase() + processedWord[0].text.slice(1);
+            }
+
             punPhrase[randomIndexes[i]] = {
-                syllables: processedWord,
+                word: processedWord.map(s => s.text).join('') + punctuation[randomIndexes[i]],
+                originalWord: word.map(s => s.text).join('') + punctuation[randomIndexes[i]],
                 isPun,
                 punScore
             };
         }
+
+        console.log(punPhrase.map(p => p.word).join(' '));
 
         return punPhrase;
     }
