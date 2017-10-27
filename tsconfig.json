@@ -7,7 +7,14 @@
     "outDir": "./dist",                        /* Redirect output structure to the directory. */
     "lib": [
       "es7"
-    ]
+    ],
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "node",
+      "through2"
+    ] 
   },
   "exclude": [
     "node_modules",

@@ -1,12 +1,12 @@
+import * as nlp from 'nlp_compromise';
+import * as nlpSyllables from 'nlp-syllables';
+import { getLevenshteinDistance } from './helpers/levenshtein';
 import { PungentConfig } from './models/config';
 import { PunWord } from './models/pun_word';
 import { DistanceMapping } from './models/distance_mapping';
 import { Syllable } from './models/syllable';
-
-import * as nlp from 'nlp_compromise';
-import * as nlpSyllables from 'nlp-syllables';
-import { getLevenshteinDistance } from './helpers/levenshtein';
 import { getSyllables } from './helpers/syllables';
+
 
 export class PunGenerator {
     constructor(private _config?: PungentConfig) {
@@ -18,10 +18,12 @@ export class PunGenerator {
     }
 
     generatePuns(targetPhrase: string, punWord: string): PunWord[] {
+        targetPhrase = targetPhrase.trim().replace(/\s+|\t/g, ' ');
+        punWord = punWord.trim();
+
         let punctuation = targetPhrase
             .split(' ')
-            .map(word => word.slice(-1))
-            .map(lastCharacter => /[^\w]/.test(lastCharacter) ? lastCharacter : '');
+            .map(word => this._getPunctuation(word));
 
         let capitalization = targetPhrase
             .split(' ')
@@ -86,14 +88,17 @@ export class PunGenerator {
             }
 
             punPhrase[randomIndexes[i]] = {
-                word: processedWord.map(s => s.text).join('') + punctuation[randomIndexes[i]],
-                originalWord: word.map(s => s.text).join('') + punctuation[randomIndexes[i]],
+                word: this._applyPunctuation(processedWord.map(s => s.text).join(''), punctuation[randomIndexes[i]]),
+                originalWord: this._applyPunctuation(word.map(s => s.text).join(''), punctuation[randomIndexes[i]]),
                 isPun,
                 punScore
             };
         }
 
-        console.log(punPhrase.map(p => p.word).join(' '));
+        if (this._config.logToConsole) {
+            console.log(punPhrase.map(p => p.word).join(' '));
+        }
+        
 
         return punPhrase;
     }
@@ -151,6 +156,24 @@ export class PunGenerator {
         return this._createPun(remainingWordLeft, remainingPunLeft, distanceMap, this._config.replacementTolerance, false)
             .concat(syllableToReplace ? [syllableToReplace] : [])
             .concat(this._createPun(remainingWordRight, remainingPunRight, distanceMap, this._config.replacementTolerance, true));
+    }
+
+    private _getPunctuation(word: string) {
+        if (word.length <= 1) {
+            return word;
+        }
+
+        let lastCharacters  = word.slice(-2);
+
+        if (/[^\w]/.test(lastCharacters[0])) {
+            return lastCharacters;
+        }
+
+        return /[^\w]/.test(lastCharacters[1]) ? lastCharacters[1] : '';
+    }
+
+    private _applyPunctuation(word: string, punctuation: string) {
+        return word.substring(0, word.length - punctuation.length) + punctuation;
     }
 
     private _flatten(arr: string[][]): string[] {
