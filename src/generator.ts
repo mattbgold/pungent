@@ -173,6 +173,9 @@ export class PunGenerator {
     }
 
     private _applyPunctuation(word: string, punctuation: string) {
+        if (punctuation.length == 1) {
+            return word + punctuation;
+        }
         return word.substring(0, word.length - punctuation.length) + punctuation;
     }
 
