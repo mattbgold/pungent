@@ -160,7 +160,7 @@ export class PunGenerator {
 
     private _getPunctuation(word: string) {
         if (word.length <= 1) {
-            return word;
+            return '';
         }
 
         let lastCharacters  = word.slice(-2);
