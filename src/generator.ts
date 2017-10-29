@@ -52,7 +52,7 @@ export class PunGenerator {
             .sort((a,b) => a.distance - b.distance);
     
         const punPhrase: PunWord[] = [];
-        let remainingWordsToPun = phraseSyllablesByWord.length * this._config.punFrequency;
+        let remainingWordsToPun = Math.round(phraseSyllablesByWord.length * this._config.punFrequency);
         const randomIndexes = this._shuffle(phraseSyllablesByWord.map((_, i) => i));
 
         for(let i = 0; i < phraseSyllablesByWord.length; i++) {
