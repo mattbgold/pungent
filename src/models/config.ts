@@ -3,4 +3,5 @@ export interface PungentConfig {
     punFrequency?: number; // between 0 and 1, the percentage of phrase words that will be converted into puns
     punScoreTolerance?: number; // between 0 and 1, decrease this to omit low-scoring puns
     logToConsole?: boolean; 
+    retainFormatting?: boolean;
 }

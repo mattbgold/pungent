@@ -18,7 +18,7 @@ export class PunGenerator {
     }
 
     generatePuns(targetPhrase: string, punWord: string): PunWord[] {
-        targetPhrase = targetPhrase.trim().replace(/\s+|\t/g, ' ');
+        targetPhrase = targetPhrase.trim().replace(/\s+|\t+|-+/g, ' ');
         punWord = punWord.trim();
 
         let punctuation = targetPhrase
@@ -67,7 +67,7 @@ export class PunGenerator {
                 processedWord = word;
             else {
                 isPun = true;
-                let pun = this._createPun(this._cloneWord(word), punSyllables, distanceMapForWord, 1);
+                let pun = this._createPun(this._cloneWord(word), this._cloneWord(punSyllables), distanceMapForWord, 1);
                 punScore = pun.reduce((sum, curr) => sum + curr.distanceScore, 0);
 
                 //lower scores are better
@@ -83,7 +83,7 @@ export class PunGenerator {
                 }
             }
 
-            if (capitalization[randomIndexes[i]]) {
+            if (this._config.retainFormatting && capitalization[randomIndexes[i]]) {
                 processedWord[0].text = processedWord[0].text.charAt(0).toUpperCase() + processedWord[0].text.slice(1);
             }
 
@@ -158,7 +158,7 @@ export class PunGenerator {
             .concat(this._createPun(remainingWordRight, remainingPunRight, distanceMap, this._config.replacementTolerance, true));
     }
 
-    private _getPunctuation(word: string) {
+    private _getPunctuation(word: string): string {
         if (word.length <= 1) {
             return '';
         }
@@ -172,10 +172,14 @@ export class PunGenerator {
         return /[^\w]/.test(lastCharacters[1]) ? lastCharacters[1] : '';
     }
 
-    private _applyPunctuation(word: string, punctuation: string) {
+    private _applyPunctuation(word: string, punctuation: string): string {
+        if (!punctuation || !this._config.retainFormatting) 
+            return word;
+
         if (punctuation.length == 1) {
             return word + punctuation;
         }
+
         return word.substring(0, word.length - punctuation.length) + punctuation;
     }
 
